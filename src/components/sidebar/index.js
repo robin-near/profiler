@@ -19,7 +19,7 @@ export function selectSidebar(
     calltree: CallTreeSidebar,
     'flame-graph': CallTreeSidebar,
     'stack-chart': null,
-    'marker-chart': null,
+    'marker-chart': MarkerSidebar,
     'marker-table': MarkerSidebar, // MarkerSidebar
     'network-chart': null,
     'js-tracer': null,

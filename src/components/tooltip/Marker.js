@@ -238,56 +238,56 @@ class MarkerTooltipContents extends React.PureComponent<Props> {
     const details: TooltipDetailComponent[] = [];
 
     if (data) {
-      // Add the details for the markers based on their Marker schema.
-      const schema = getSchemaFromMarker(
-        markerSchemaByName,
-        marker.name,
-        marker.data
-      );
-      if (schema) {
-        for (const schemaData of schema.data) {
-          // Check for a schema that is looking up and formatting a value from
-          // the payload.
-          if (schemaData.value === undefined) {
-            const { key, label, format } = schemaData;
-            if (key in data) {
-              const value = data[key];
+      // // Add the details for the markers based on their Marker schema.
+      // const schema = getSchemaFromMarker(
+      //   markerSchemaByName,
+      //   marker.name,
+      //   marker.data
+      // );
+      // if (schema) {
+      //   for (const schemaData of schema.data) {
+      //     // Check for a schema that is looking up and formatting a value from
+      //     // the payload.
+      //     if (schemaData.value === undefined) {
+      //       const { key, label, format } = schemaData;
+      //       if (key in data) {
+      //         const value = data[key];
 
-              // Don't add undefined values, as values are optional.
-              if (value !== undefined && value !== null) {
-                details.push(
-                  <TooltipDetail
-                    key={schema.name + '-' + key}
-                    label={label || key}
-                  >
-                    {formatMarkupFromMarkerSchema(
-                      schema.name,
-                      format,
-                      value,
-                      thread.stringTable,
-                      threadIdToNameMap,
-                      processIdToNameMap
-                    )}
-                  </TooltipDetail>
-                );
-              }
-            }
-          }
+      //         // Don't add undefined values, as values are optional.
+      //         if (value !== undefined && value !== null) {
+      //           details.push(
+      //             <TooltipDetail
+      //               key={schema.name + '-' + key}
+      //               label={label || key}
+      //             >
+      //               {formatMarkupFromMarkerSchema(
+      //                 schema.name,
+      //                 format,
+      //                 value,
+      //                 thread.stringTable,
+      //                 threadIdToNameMap,
+      //                 processIdToNameMap
+      //               )}
+      //             </TooltipDetail>
+      //           );
+      //         }
+      //       }
+      //     }
 
-          // Do a check to see if there is no key. This means this is a simple
-          // label that is applied to every marker of this type, with no data
-          // lookup. For some reason Flow as not able to refine this.
-          if (schemaData.key === undefined) {
-            const { label, value } = schemaData;
-            const key = label + '-' + value;
-            details.push(
-              <TooltipDetail key={key} label={label}>
-                <div className="tooltipDetailsDescription">{value}</div>
-              </TooltipDetail>
-            );
-          }
-        }
-      }
+      //     // Do a check to see if there is no key. This means this is a simple
+      //     // label that is applied to every marker of this type, with no data
+      //     // lookup. For some reason Flow as not able to refine this.
+      //     if (schemaData.key === undefined) {
+      //       const { label, value } = schemaData;
+      //       const key = label + '-' + value;
+      //       details.push(
+      //         <TooltipDetail key={key} label={label}>
+      //           <div className="tooltipDetailsDescription">{value}</div>
+      //         </TooltipDetail>
+      //       );
+      //     }
+      //   }
+      // }
 
       switch (data.type) {
         case 'GCMinor': {
@@ -396,6 +396,33 @@ class MarkerTooltipContents extends React.PureComponent<Props> {
             );
           }
           break;
+        }
+        case 'span': {
+          const pinnedKeys = ['thread.name', 'name', 'actor', 'msg_type'];
+          for (const key of pinnedKeys) {
+            if (data.hasOwnProperty(key)) {
+              details.push(
+                <TooltipDetail key={key} label={key}>
+                  {data[key]}
+                </TooltipDetail>
+              );
+            }
+          }
+
+          const remainingKeys = [];
+          for (const key in data) {
+            if (data.hasOwnProperty(key) && !pinnedKeys.includes(key)) {
+              remainingKeys.push(key);
+            }
+          }
+          remainingKeys.sort();
+          for (const key of remainingKeys) {
+            details.push(
+              <TooltipDetail key={key} label={key}>
+                {data[key]}
+              </TooltipDetail>
+            );
+          }
         }
         default:
         // Do nothing

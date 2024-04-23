@@ -19,7 +19,7 @@ export const PROCESSED_PROFILE_VERSION = 48;
 // The following are the margin sizes for the left and right of the timeline. Independent
 // components need to share these values.
 export const TIMELINE_MARGIN_RIGHT = 15;
-export const TIMELINE_MARGIN_LEFT = 150;
+export const TIMELINE_MARGIN_LEFT = 300;
 export const ACTIVE_TAB_TIMELINE_MARGIN_LEFT = 0;
 
 // Export the value for tests, and for computing the max height of the timeline
