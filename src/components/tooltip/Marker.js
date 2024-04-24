@@ -397,13 +397,14 @@ class MarkerTooltipContents extends React.PureComponent<Props> {
           }
           break;
         }
+        case 'span-event':
         case 'span': {
           const pinnedKeys = ['thread.name', 'name', 'actor', 'msg_type'];
           for (const key of pinnedKeys) {
             if (data.hasOwnProperty(key)) {
               details.push(
                 <TooltipDetail key={key} label={key}>
-                  {data[key]}
+                  {data[(key: string)]}
                 </TooltipDetail>
               );
             }

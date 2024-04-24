@@ -6,6 +6,7 @@ import type {
   CategoryList,
   Marker,
   MarkerIndex,
+  MarkerColor,
   MarkerTiming,
   MarkerTimingAndBuckets,
 } from 'firefox-profiler/types';
@@ -87,7 +88,7 @@ const MAX_STACKING_DEPTH = 300;
  */
 export function getMarkerTiming(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[],
+  [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   // Categories can be null for things like Network Markers, where we don't care to
   // break things up by category.
   getLabel: (MarkerIndex) => string,
@@ -100,7 +101,9 @@ export function getMarkerTiming(
   const instantMarkerTimingsMap: Map<string, MarkerTiming> = new Map();
 
   // Go through all of the markers.
-  for (const markerIndex of markerIndexes) {
+  for (let i = 0; i < markerIndexes.length; i++) {
+    const markerIndex = markerIndexes[i];
+    const markerColor = markerColors[i];
     const marker = getMarker(markerIndex);
 
     const addCurrentMarkerToMarkerTiming = (markerTiming: MarkerTiming) => {
@@ -112,6 +115,7 @@ export function getMarkerTiming(
       );
       markerTiming.label.push(getLabel(markerIndex));
       markerTiming.index.push(markerIndex);
+      markerTiming.color.push(markerColor);
       markerTiming.length++;
     };
 
@@ -129,6 +133,7 @@ export function getMarkerTiming(
       start: [],
       end: [],
       index: [],
+      color: [],
       label: [],
       name: markerLineName,
       bucket: bucketName,
@@ -294,7 +299,7 @@ export function getMarkerTiming(
  */
 export function getMarkerTimingAndBuckets(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[],
+  [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   // Categories can be null for things like Network Markers, where we don't care to
   // break things up by category.
   getLabel: (MarkerIndex) => string,
@@ -302,7 +307,7 @@ export function getMarkerTimingAndBuckets(
 ): MarkerTimingAndBuckets {
   const allMarkerTimings = getMarkerTiming(
     getMarker,
-    markerIndexes,
+    [markerIndexes, markerColors],
     getLabel,
     categories
   );

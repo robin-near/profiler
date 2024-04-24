@@ -1636,9 +1636,9 @@ function _findRangesByMarkerFilter(
   const ranges = [];
 
   const searchRegExp = stringsToRegExp(splitSearchString(filter));
-  const searchFilteredMarkerIndexes = getSearchFilteredMarkerIndexes(
+  const [searchFilteredMarkerIndexes] = getSearchFilteredMarkerIndexes(
     getMarker,
-    markerIndexes,
+    [markerIndexes, Array(markerIndexes.length).fill(1)],
     markerSchemaByName,
     searchRegExp,
     categoryList

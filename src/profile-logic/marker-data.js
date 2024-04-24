@@ -30,6 +30,7 @@ import type {
   InnerWindowID,
   Marker,
   MarkerIndex,
+  MarkerColor,
   MarkerPayload,
   IPCSharedData,
   IPCMarkerPayload,
@@ -117,13 +118,13 @@ export function deriveJankMarkers(
 
 export function getSearchFilteredMarkerIndexes(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[],
+  [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   markerSchemaByName: MarkerSchemaByName,
   searchRegExp: RegExp | null,
   categoryList: CategoryList
-): MarkerIndex[] {
+): [MarkerIndex[], MarkerColor[]] {
   if (!searchRegExp) {
-    return markerIndexes;
+    return [markerIndexes, new Array(markerIndexes.length).fill(1)];
   }
   // Need to assign it to a constant variable so Flow doesn't complain about
   // passing it inside a function below.
@@ -144,46 +145,62 @@ export function getSearchFilteredMarkerIndexes(
   }
 
   const newMarkers: MarkerIndex[] = [];
-  for (const markerIndex of markerIndexes) {
+  const newColors: MarkerColor[] = [];
+  for (let i = 0; i < markerIndexes.length; i++) {
+    const markerIndex = markerIndexes[i];
     const marker = getMarker(markerIndex);
+    newMarkers.push(markerIndex);
     const { data, name, category } = marker;
 
     if (categoryList[category] !== undefined) {
       const markerCategory = categoryList[category].name;
       if (test(markerCategory, 'cat')) {
-        newMarkers.push(markerIndex);
+        newColors.push(markerColors[i]);
         continue;
       }
     }
 
     if (test(name, 'name')) {
-      newMarkers.push(markerIndex);
+      newColors.push(markerColors[i]);
       continue;
     }
 
     if (data && typeof data === 'object') {
       if (test(data.type, 'type')) {
         // Check the type of the marker payload first.
-        newMarkers.push(markerIndex);
+        newColors.push(markerColors[i]);
         continue;
       }
 
-      // Now check the schema for the marker payload for searchable
-      const markerSchema = getSchemaFromMarker(
-        markerSchemaByName,
-        marker.name,
-        marker.data
-      );
-      if (
-        markerSchema &&
-        markerPayloadMatchesSearch(markerSchema, marker, test)
-      ) {
-        newMarkers.push(markerIndex);
+      let anyMatched = false;
+      for (const key in data) {
+        if (test(data[key], key)) {
+          newColors.push(markerColors[i]);
+          anyMatched = true;
+          break;
+        }
+      }
+      if (anyMatched) {
         continue;
       }
+      // // Now check the schema for the marker payload for searchable
+      // const markerSchema = getSchemaFromMarker(
+      //   markerSchemaByName,
+      //   marker.name,
+      //   marker.data
+      // );
+      // if (
+      //   markerSchema &&
+      //   markerPayloadMatchesSearch(markerSchema, marker, test)
+      // ) {
+      //   newColors.push(markerColors[i]);
+      //   continue;
+      // }
     }
+
+    newColors.push(0);
   }
-  return newMarkers;
+  return [newMarkers, newColors];
 }
 
 /**
@@ -193,16 +210,18 @@ export function getSearchFilteredMarkerIndexes(
  */
 export function getTabFilteredMarkerIndexes(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[],
+  [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   relevantPages: Set<InnerWindowID>,
   includeGlobalMarkers: boolean = true
-): MarkerIndex[] {
+): [MarkerIndex[], MarkerColor[]] {
   if (relevantPages.size === 0) {
-    return markerIndexes;
+    return [markerIndexes, markerColors];
   }
 
   const newMarkers: MarkerIndex[] = [];
-  for (const markerIndex of markerIndexes) {
+  const newColors: MarkerColor[] = [];
+  for (let i = 0; i < markerIndexes.length; i++) {
+    const markerIndex = markerIndexes[i];
     const { name, data } = getMarker(markerIndex);
 
     // We want to retain some markers even though they do not belong to a specific tab.
@@ -212,6 +231,7 @@ export function getTabFilteredMarkerIndexes(
     if (includeGlobalMarkers) {
       if (name === 'Jank') {
         newMarkers.push(markerIndex);
+        newColors.push(markerColors[i]);
         continue;
       }
     } else {
@@ -224,10 +244,11 @@ export function getTabFilteredMarkerIndexes(
 
     if (data && data.innerWindowID && relevantPages.has(data.innerWindowID)) {
       newMarkers.push(markerIndex);
+      newColors.push(markerColors[i]);
     }
   }
 
-  return newMarkers;
+  return [newMarkers, newColors];
 }
 
 /**
@@ -1068,22 +1089,32 @@ export function filterRawMarkerTableToRangeWithMarkersToDelete(
 export function filterMarkerIndexes(
   getMarker: (MarkerIndex) => Marker,
   markerIndexes: MarkerIndex[],
+  markerColors: MarkerColor[],
   filterFunc: (Marker) => boolean
-): MarkerIndex[] {
-  return markerIndexes.filter((markerIndex) => {
-    return filterFunc(getMarker(markerIndex));
-  });
+): [MarkerIndex[], MarkerColor[]] {
+  const filteredIndexes = [];
+  const filteredColors = [];
+  for (let i = 0; i < markerIndexes.length; i++) {
+    const markerIndex = markerIndexes[i];
+    if (filterFunc(getMarker(markerIndex))) {
+      filteredIndexes.push(markerIndex);
+      filteredColors.push(markerColors[i]);
+    }
+  }
+  return [filteredIndexes, filteredColors];
 }
 
 export function filterMarkerIndexesToRange(
   getMarker: (MarkerIndex) => Marker,
   markerIndexes: MarkerIndex[],
+  markerColors: MarkerColor[],
   rangeStart: number,
   rangeEnd: number
-): MarkerIndex[] {
+): [MarkerIndex[], MarkerColor[]] {
   return filterMarkerIndexes(
     getMarker,
     markerIndexes,
+    markerColors,
     (marker) =>
       marker.start <= rangeEnd && (marker.end || marker.start) >= rangeStart
   );
@@ -1249,7 +1280,7 @@ export function getColorClassNameForMimeType(
 
 export function groupScreenshotsById(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[]
+  [markerIndexes]: [MarkerIndex[], MarkerColor[]]
 ): Map<string, Marker[]> {
   const idToScreenshotMarkers = new Map();
   for (const markerIndex of markerIndexes) {
@@ -1378,7 +1409,7 @@ function _doNotAutomaticallyAdd(_data: Marker) {
  */
 export function filterMarkerByDisplayLocation(
   getMarker: (MarkerIndex) => Marker,
-  markerIndexes: MarkerIndex[],
+  [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   markerSchema: MarkerSchema[],
   markerSchemaByName: MarkerSchemaByName,
   displayLocation: MarkerDisplayLocation,
@@ -1388,20 +1419,25 @@ export function filterMarkerByDisplayLocation(
   preemptiveFilterFunc?: (
     data: Marker
   ) => boolean | void = _doNotAutomaticallyAdd
-): MarkerIndex[] {
+): [MarkerIndex[], MarkerColor[]] {
   const markerTypes = getMarkerTypesForDisplay(markerSchema, displayLocation);
-  return filterMarkerIndexes(getMarker, markerIndexes, (marker) => {
-    const additionalResult = preemptiveFilterFunc(marker);
+  return filterMarkerIndexes(
+    getMarker,
+    markerIndexes,
+    markerColors,
+    (marker) => {
+      const additionalResult = preemptiveFilterFunc(marker);
 
-    if (additionalResult !== undefined) {
-      // This is a boolean value, use it rather than the schema.
-      return additionalResult;
+      if (additionalResult !== undefined) {
+        // This is a boolean value, use it rather than the schema.
+        return additionalResult;
+      }
+
+      return markerTypes.has(
+        getMarkerSchemaName(markerSchemaByName, marker.name, marker.data)
+      );
     }
-
-    return markerTypes.has(
-      getMarkerSchemaName(markerSchemaByName, marker.name, marker.data)
-    );
-  });
+  );
 }
 
 /**

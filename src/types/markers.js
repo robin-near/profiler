@@ -763,7 +763,11 @@ export type UrlMarkerPayload = {|
 
 export type SpanPayload = {|
   type: 'span',
-|}
+|};
+
+export type SpanEventPayload = {|
+  type: 'span-event',
+|};
 
 /**
  * The union of all the different marker payloads that profiler.firefox.com knows about,

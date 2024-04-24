@@ -348,6 +348,8 @@ export type Marker = {|
  */
 export type MarkerIndex = number;
 
+export type MarkerColor = 0 | 1;
+
 export type CallNodeData = {
   funcName: string,
   total: number,
@@ -401,6 +403,7 @@ export type MarkerTiming = {|
   // End time in milliseconds. It will equals start for instant markers.
   end: number[],
   index: MarkerIndex[],
+  color: MarkerColor[],
   label: string[],
   name: string,
   bucket: string,

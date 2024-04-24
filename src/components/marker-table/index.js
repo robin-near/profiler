@@ -281,7 +281,8 @@ export const MarkerTable = explicitConnect<{||}, StateProps, DispatchProps>({
     threadsKey: getSelectedThreadsKey(state),
     scrollToSelectionGeneration: getScrollToSelectionGeneration(state),
     getMarker: selectedThreadSelectors.getMarkerGetter(state),
-    markerIndexes: selectedThreadSelectors.getMarkerTableMarkerIndexes(state),
+    markerIndexes:
+      selectedThreadSelectors.getMarkerTableMarkerIndexes(state)[0],
     selectedMarker: selectedThreadSelectors.getSelectedMarkerIndex(state),
     rightClickedMarkerIndex:
       selectedThreadSelectors.getRightClickedMarkerIndex(state),

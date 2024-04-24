@@ -22,6 +22,7 @@ import type {
   RawMarkerTable,
   ThreadIndex,
   MarkerIndex,
+  MarkerColor,
   Marker,
   MarkerSchema,
   MarkerTiming,
@@ -164,10 +165,11 @@ export function getMarkerSelectorsPerThread(
    * This returns the list of all marker indexes. This is simply a sequence
    * built from the full marker list.
    */
-  const getFullMarkerListIndexes: Selector<MarkerIndex[]> = createSelector(
-    getFullMarkerList,
-    (markers) => markers.map((_, i) => i)
-  );
+  const getFullMarkerListIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(getFullMarkerList, (markers) => [
+      markers.map((_, i) => i),
+      markers.map((marker) => 1),
+    ]);
 
   /**
    * This utility function makes it easy to write selectors that deal with list
@@ -190,54 +192,67 @@ export function getMarkerSelectorsPerThread(
     (filterFunc: (Marker) => boolean) =>
     (
       getMarker: (MarkerIndex) => Marker,
-      markerIndexes: MarkerIndex[]
-    ): MarkerIndex[] =>
-      MarkerData.filterMarkerIndexes(getMarker, markerIndexes, filterFunc);
+      [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]]
+    ): [MarkerIndex[], MarkerColor[]] =>
+      MarkerData.filterMarkerIndexes(
+        getMarker,
+        markerIndexes,
+        markerColors,
+        filterFunc
+      );
 
   /**
    * This selector applies the committed range to the full list of markers.
    */
-  const getCommittedRangeFilteredMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getFullMarkerListIndexes,
-      ProfileSelectors.getCommittedRange,
-      (getMarker, markerIndexes, range): MarkerIndex[] => {
-        const { start, end } = range;
-        return MarkerData.filterMarkerIndexesToRange(
-          getMarker,
-          markerIndexes,
-          start,
-          end
-        );
-      }
-    );
+  const getCommittedRangeFilteredMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getFullMarkerListIndexes,
+    ProfileSelectors.getCommittedRange,
+    (
+      getMarker,
+      [markerIndexes, markerColors],
+      range
+    ): [MarkerIndex[], MarkerColor[]] => {
+      const { start, end } = range;
+      return MarkerData.filterMarkerIndexesToRange(
+        getMarker,
+        markerIndexes,
+        markerColors,
+        start,
+        end
+      );
+    }
+  );
 
   /**
    * This selector applies the tab filter(if in a single tab view) to the range filtered markers.
    */
-  const getCommittedRangeAndTabFilteredMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeFilteredMarkerIndexes,
-      ProfileSelectors.getRelevantInnerWindowIDsForCurrentTab,
-      MarkerData.getTabFilteredMarkerIndexes
-    );
+  const getCommittedRangeAndTabFilteredMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getCommittedRangeFilteredMarkerIndexes,
+    ProfileSelectors.getRelevantInnerWindowIDsForCurrentTab,
+    MarkerData.getTabFilteredMarkerIndexes
+  );
 
   /**
    * This selector filters out markers that are usually too long to be displayed
    * in the header, because they would obscure the header, or that are displayed
    * in other tracks already.
    */
-  const getTimelineOverviewMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeAndTabFilteredMarkerIndexes,
-      ProfileSelectors.getMarkerSchema,
-      ProfileSelectors.getMarkerSchemaByName,
-      () => 'timeline-overview',
-      MarkerData.filterMarkerByDisplayLocation
-    );
+  const getTimelineOverviewMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getCommittedRangeAndTabFilteredMarkerIndexes,
+    ProfileSelectors.getMarkerSchema,
+    ProfileSelectors.getMarkerSchemaByName,
+    () => 'timeline-overview',
+    MarkerData.filterMarkerByDisplayLocation
+  );
 
   /**
    * This selector applies the tab filter(if in a single tab view) to the full
@@ -246,15 +261,15 @@ export function getMarkerSelectorsPerThread(
    * so we can hide it inside active tab view.
    */
   const getActiveTabFilteredMarkerIndexesWithoutGlobals: Selector<
-    MarkerIndex[],
+    [MarkerIndex[], MarkerColor[]],
   > = createSelector(
     getMarkerGetter,
     getFullMarkerListIndexes,
     ProfileSelectors.getRelevantInnerWindowIDsForActiveTab,
-    (markerGetter, markerIndexes, relevantPages) => {
+    (markerGetter, markerIndexesAndColors, relevantPages) => {
       return MarkerData.getTabFilteredMarkerIndexes(
         markerGetter,
-        markerIndexes,
+        markerIndexesAndColors,
         relevantPages,
         false // exclude global markers
       );
@@ -264,63 +279,68 @@ export function getMarkerSelectorsPerThread(
   /**
    * This selector selects only navigation markers.
    */
-  const getTimelineVerticalMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeAndTabFilteredMarkerIndexes,
-      filterMarkerIndexesCreator(MarkerData.isNavigationMarker)
-    );
+  const getTimelineVerticalMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getCommittedRangeAndTabFilteredMarkerIndexes,
+    filterMarkerIndexesCreator(MarkerData.isNavigationMarker)
+  );
 
   /**
    * This selector selects only jank markers.
    */
-  const getTimelineJankMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
-    getMarkerGetter,
-    getCommittedRangeAndTabFilteredMarkerIndexes,
-    _getDerivedJankMarkers,
-    (getMarker, markerIndexes, derivedMarkers) => {
-      const type = derivedMarkers.length > 0 ? 'Jank' : 'BHR-detected hang';
+  const getTimelineJankMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getCommittedRangeAndTabFilteredMarkerIndexes,
+      _getDerivedJankMarkers,
+      (getMarker, markerIndexes, derivedMarkers) => {
+        const type = derivedMarkers.length > 0 ? 'Jank' : 'BHR-detected hang';
 
-      return filterMarkerIndexesCreator((marker) =>
-        Boolean(marker.data && marker.data.type === type)
-      )(getMarker, markerIndexes);
-    }
-  );
+        return filterMarkerIndexesCreator((marker) =>
+          Boolean(marker.data && marker.data.type === type)
+        )(getMarker, markerIndexes);
+      }
+    );
 
   /**
    * This selector filters markers matching a search string.
    */
-  const getSearchFilteredMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeAndTabFilteredMarkerIndexes,
-      ProfileSelectors.getMarkerSchemaByName,
-      UrlState.getMarkersSearchStringsAsRegExp,
-      ProfileSelectors.getCategories,
-      MarkerData.getSearchFilteredMarkerIndexes
-    );
+  const getSearchFilteredMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getCommittedRangeAndTabFilteredMarkerIndexes,
+    ProfileSelectors.getMarkerSchemaByName,
+    UrlState.getMarkersSearchStringsAsRegExp,
+    ProfileSelectors.getCategories,
+    MarkerData.getSearchFilteredMarkerIndexes
+  );
 
   /**
    * This further filters markers using the preview selection range.
    */
-  const getPreviewFilteredMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getSearchFilteredMarkerIndexes,
-      ProfileSelectors.getPreviewSelection,
-      (getMarker, markerIndexes, previewSelection) => {
-        if (!previewSelection.hasSelection) {
-          return markerIndexes;
-        }
-        const { selectionStart, selectionEnd } = previewSelection;
-        return MarkerData.filterMarkerIndexesToRange(
-          getMarker,
-          markerIndexes,
-          selectionStart,
-          selectionEnd
-        );
+  const getPreviewFilteredMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getSearchFilteredMarkerIndexes,
+    ProfileSelectors.getPreviewSelection,
+    (getMarker, [markerIndexes, markerColors], previewSelection) => {
+      if (!previewSelection.hasSelection) {
+        return [markerIndexes, markerColors];
       }
-    );
+      const { selectionStart, selectionEnd } = previewSelection;
+      return MarkerData.filterMarkerIndexesToRange(
+        getMarker,
+        markerIndexes,
+        markerColors,
+        selectionStart,
+        selectionEnd
+      );
+    }
+  );
 
   /**
    * This selector finds out whether there's any network marker in this thread.
@@ -333,30 +353,33 @@ export function getMarkerSelectorsPerThread(
   /**
    * This selector filters network markers from the range filtered markers.
    */
-  const getNetworkMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
-    getMarkerGetter,
-    getCommittedRangeFilteredMarkerIndexes,
-    filterMarkerIndexesCreator(MarkerData.isNetworkMarker)
-  );
+  const getNetworkMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getCommittedRangeFilteredMarkerIndexes,
+      filterMarkerIndexesCreator(MarkerData.isNetworkMarker)
+    );
 
-  const getUserTimingMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
-    getMarkerGetter,
-    getCommittedRangeFilteredMarkerIndexes,
-    filterMarkerIndexesCreator(MarkerData.isUserTimingMarker)
-  );
+  const getUserTimingMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getCommittedRangeFilteredMarkerIndexes,
+      filterMarkerIndexesCreator(MarkerData.isUserTimingMarker)
+    );
 
   /**
    * This filters network markers using a search string.
    */
-  const getSearchFilteredNetworkMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getNetworkMarkerIndexes,
-      ProfileSelectors.getMarkerSchemaByName,
-      UrlState.getNetworkSearchStringsAsRegExp,
-      ProfileSelectors.getCategories,
-      MarkerData.getSearchFilteredMarkerIndexes
-    );
+  const getSearchFilteredNetworkMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getNetworkMarkerIndexes,
+    ProfileSelectors.getMarkerSchemaByName,
+    UrlState.getNetworkSearchStringsAsRegExp,
+    ProfileSelectors.getCategories,
+    MarkerData.getSearchFilteredMarkerIndexes
+  );
 
   /**
    * Returns whether there's any marker besides network markers.
@@ -372,46 +395,53 @@ export function getMarkerSelectorsPerThread(
    * instead. It shows markers that use the "marker-chart" schema location, plus it
    * shows markers that have no schema, in order to be as permissive as possible.
    */
-  const getMarkerChartMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
-    getMarkerGetter,
-    getSearchFilteredMarkerIndexes,
-    ProfileSelectors.getMarkerSchema,
-    ProfileSelectors.getMarkerSchemaByName,
-    // Custom filtering in addition to the schema logic:
-    (getMarker, markerIndexes, markerSchema, markerSchemaByName) => {
-      return MarkerData.filterMarkerByDisplayLocation(
+  const getMarkerChartMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getSearchFilteredMarkerIndexes,
+      ProfileSelectors.getMarkerSchema,
+      ProfileSelectors.getMarkerSchemaByName,
+      // Custom filtering in addition to the schema logic:
+      (
         getMarker,
-        markerIndexes,
+        [markerIndexes, markerColors],
         markerSchema,
-        markerSchemaByName,
-        'marker-chart',
-        MarkerData.getAllowMarkersWithNoSchema(markerSchemaByName)
-      );
-    }
-  );
+        markerSchemaByName
+      ) => {
+        return MarkerData.filterMarkerByDisplayLocation(
+          getMarker,
+          [markerIndexes, markerColors],
+          markerSchema,
+          markerSchemaByName,
+          'marker-chart',
+          MarkerData.getAllowMarkersWithNoSchema(markerSchemaByName)
+        );
+      }
+    );
 
   /**
    * The marker table uses only the preview selection filtered markers. It shows markers
    * that use the "marker-table" schema location, plus it shows markers that have
    * no schema, in order to be as permissive as possible.
    */
-  const getMarkerTableMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
-    getMarkerGetter,
-    getPreviewFilteredMarkerIndexes,
-    ProfileSelectors.getMarkerSchema,
-    ProfileSelectors.getMarkerSchemaByName,
-    // Custom filtering in addition to the schema logic:
-    (getMarker, markerIndexes, markerSchema, markerSchemaByName) => {
-      return MarkerData.filterMarkerByDisplayLocation(
-        getMarker,
-        markerIndexes,
-        markerSchema,
-        markerSchemaByName,
-        'marker-table',
-        MarkerData.getAllowMarkersWithNoSchema(markerSchemaByName)
-      );
-    }
-  );
+  const getMarkerTableMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getPreviewFilteredMarkerIndexes,
+      ProfileSelectors.getMarkerSchema,
+      ProfileSelectors.getMarkerSchemaByName,
+      // Custom filtering in addition to the schema logic:
+      (getMarker, markerIndexes, markerSchema, markerSchemaByName) => {
+        return MarkerData.filterMarkerByDisplayLocation(
+          getMarker,
+          markerIndexes,
+          markerSchema,
+          markerSchemaByName,
+          'marker-table',
+          MarkerData.getAllowMarkersWithNoSchema(markerSchemaByName)
+        );
+      }
+    );
 
   /**
    * This getter uses the marker schema to decide on the labels for tooltips.
@@ -489,42 +519,45 @@ export function getMarkerSelectorsPerThread(
    * there is special handling to ensure that the FileIO markers are displayed
    * only for that thread.
    */
-  const getTimelineFileIoMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeAndTabFilteredMarkerIndexes,
-      ProfileSelectors.getMarkerSchema,
-      ProfileSelectors.getMarkerSchemaByName,
-      () => 'timeline-fileio',
-      // Custom filtering in addition to the schema logic:
-      () => MarkerData.isOnThreadFileIoMarker,
-      MarkerData.filterMarkerByDisplayLocation
-    );
-
-  /**
-   * This returns only memory markers.
-   */
-  const getTimelineMemoryMarkerIndexes: Selector<MarkerIndex[]> =
-    createSelector(
-      getMarkerGetter,
-      getCommittedRangeAndTabFilteredMarkerIndexes,
-      ProfileSelectors.getMarkerSchema,
-      ProfileSelectors.getMarkerSchemaByName,
-      () => 'timeline-memory',
-      MarkerData.filterMarkerByDisplayLocation
-    );
-
-  /**
-   * This returns only IPC markers.
-   */
-  const getTimelineIPCMarkerIndexes: Selector<MarkerIndex[]> = createSelector(
+  const getTimelineFileIoMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
     getMarkerGetter,
     getCommittedRangeAndTabFilteredMarkerIndexes,
     ProfileSelectors.getMarkerSchema,
     ProfileSelectors.getMarkerSchemaByName,
-    () => 'timeline-ipc',
+    () => 'timeline-fileio',
+    // Custom filtering in addition to the schema logic:
+    () => MarkerData.isOnThreadFileIoMarker,
     MarkerData.filterMarkerByDisplayLocation
   );
+
+  /**
+   * This returns only memory markers.
+   */
+  const getTimelineMemoryMarkerIndexes: Selector<
+    [MarkerIndex[], MarkerColor[]],
+  > = createSelector(
+    getMarkerGetter,
+    getCommittedRangeAndTabFilteredMarkerIndexes,
+    ProfileSelectors.getMarkerSchema,
+    ProfileSelectors.getMarkerSchemaByName,
+    () => 'timeline-memory',
+    MarkerData.filterMarkerByDisplayLocation
+  );
+
+  /**
+   * This returns only IPC markers.
+   */
+  const getTimelineIPCMarkerIndexes: Selector<[MarkerIndex[], MarkerColor[]]> =
+    createSelector(
+      getMarkerGetter,
+      getCommittedRangeAndTabFilteredMarkerIndexes,
+      ProfileSelectors.getMarkerSchema,
+      ProfileSelectors.getMarkerSchemaByName,
+      () => 'timeline-ipc',
+      MarkerData.filterMarkerByDisplayLocation
+    );
 
   /**
    * This organizes the network markers in rows so that they're nicely displayed

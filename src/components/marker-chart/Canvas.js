@@ -3,7 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // @flow
-import { GREY_20, GREY_30, BLUE_60, BLUE_80 } from 'photon-colors';
+import {
+  GREY_20,
+  GREY_30,
+  BLUE_60,
+  BLUE_80,
+  ORANGE_80,
+  ORANGE_70,
+  ORANGE_60,
+  ORANGE_50,
+} from 'photon-colors';
 import * as React from 'react';
 import {
   withChartViewport,
@@ -30,6 +39,7 @@ import type {
   Marker,
   MarkerTimingAndBuckets,
   MarkerIndex,
+  MarkerColor,
   TimelineTrackOrganization,
 } from 'firefox-profiler/types';
 import { getStartEndRangeForMarker } from 'firefox-profiler/utils';
@@ -48,6 +58,8 @@ type MarkerDrawingInformation = {|
   +h: CssPixels,
   +isInstantMarker: boolean,
   +text: string,
+  +color: MarkerColor,
+  +highlighted: boolean,
 |};
 
 // We can hover over multiple items with Marker chart when we are in the active
@@ -287,12 +299,13 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
     h: CssPixels,
     isInstantMarker: boolean,
     text: string,
+    color: MarkerColor,
     isHighlighted: boolean = false
   ) {
     if (isInstantMarker) {
-      this.drawOneInstantMarker(ctx, x, y, h, isHighlighted);
+      this.drawOneInstantMarker(ctx, x, y, h, color, isHighlighted);
     } else {
-      this.drawOneIntervalMarker(ctx, x, y, w, h, text, isHighlighted);
+      this.drawOneIntervalMarker(ctx, x, y, w, h, text, color, isHighlighted);
     }
   }
 
@@ -303,6 +316,7 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
     w: CssPixels,
     h: CssPixels,
     text: string,
+    color: MarkerColor,
     isHighlighted: boolean
   ) {
     const { marginLeft } = this.props;
@@ -314,6 +328,9 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
       // pixels, the borders would collapse.
       // So let's draw it directly as a rect.
       ctx.fillStyle = isHighlighted ? BLUE_80 : MARKER_BORDER_COLOR;
+      if (color == 1) {
+        ctx.fillStyle = isHighlighted ? ORANGE_80 : ORANGE_70;
+      }
 
       // w is rounded in the caller, but let's make sure it's at least 1.
       w = Math.max(w, 1);
@@ -324,6 +341,10 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
 
       ctx.fillStyle = isHighlighted ? BLUE_60 : '#8ac4ff';
       ctx.strokeStyle = isHighlighted ? BLUE_80 : MARKER_BORDER_COLOR;
+      if (color == 1) {
+        ctx.fillStyle = isHighlighted ? ORANGE_60 : ORANGE_50;
+        ctx.strokeStyle = isHighlighted ? ORANGE_80 : ORANGE_70;
+      }
 
       ctx.beginPath();
 
@@ -367,10 +388,15 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
     x: CssPixels,
     y: CssPixels,
     h: CssPixels,
+    color: MarkerColor,
     isHighlighted: boolean
   ) {
     ctx.fillStyle = isHighlighted ? BLUE_60 : '#8ac4ff';
     ctx.strokeStyle = isHighlighted ? BLUE_80 : MARKER_BORDER_COLOR;
+    if (color == 1) {
+      ctx.fillStyle = isHighlighted ? ORANGE_60 : ORANGE_50;
+      ctx.strokeStyle = isHighlighted ? ORANGE_80 : ORANGE_70;
+    }
 
     // We're drawing a diamond shape, whose height is h - 2, and width is h / 2.
     ctx.beginPath();
@@ -424,6 +450,7 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
       marginRight * ((viewportLength * rangeLength) / markerContainerWidth);
 
     const highlightedMarkers: MarkerDrawingInformation[] = [];
+    const coloredMarkers: MarkerDrawingInformation[] = [];
 
     // We'll restore the context at the end, so that the clip region will be
     // removed.
@@ -475,6 +502,7 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
 
           const text = markerTiming.label[i];
           const markerIndex = markerTiming.index[i];
+          const markerColor = markerTiming.color[i];
 
           const isHighlighted =
             rightClickedMarkerIndex === markerIndex ||
@@ -482,7 +510,27 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
             selectedMarkerIndex === markerIndex;
 
           if (isHighlighted) {
-            highlightedMarkers.push({ x, y, w, h, isInstantMarker, text });
+            highlightedMarkers.push({
+              x,
+              y,
+              w,
+              h,
+              isInstantMarker,
+              text,
+              color: markerColor,
+              highlighted: isHighlighted,
+            });
+          } else if (markerColor == 1) {
+            coloredMarkers.push({
+              x,
+              y,
+              w,
+              h,
+              isInstantMarker,
+              text,
+              color: markerColor,
+              highlighted: isHighlighted,
+            });
           } else if (
             // Always render non-dot markers and markers that are larger than
             // one pixel.
@@ -492,26 +540,38 @@ class MarkerChartCanvasImpl extends React.PureComponent<Props> {
             x !== previousMarkerDrawnAtX
           ) {
             previousMarkerDrawnAtX = x;
-            this.drawOneMarker(ctx, x, y, w, h, isInstantMarker, text);
+            this.drawOneMarker(
+              ctx,
+              x,
+              y,
+              w,
+              h,
+              isInstantMarker,
+              text,
+              markerColor
+            );
           }
         }
       }
     }
 
-    // We draw highlighted markers after the normal markers so that they stand
-    // out more.
-    highlightedMarkers.forEach((highlightedMarker) => {
-      this.drawOneMarker(
-        ctx,
-        highlightedMarker.x,
-        highlightedMarker.y,
-        highlightedMarker.w,
-        highlightedMarker.h,
-        highlightedMarker.isInstantMarker,
-        highlightedMarker.text,
-        true /* isHighlighted */
-      );
-    });
+    for (const delayed of [coloredMarkers, highlightedMarkers]) {
+      // We draw highlighted markers after the normal markers so that they stand
+      // out more.
+      delayed.forEach((marker) => {
+        this.drawOneMarker(
+          ctx,
+          marker.x,
+          marker.y,
+          marker.w,
+          marker.h,
+          marker.isInstantMarker,
+          marker.text,
+          marker.color,
+          marker.highlighted
+        );
+      });
+    }
 
     ctx.restore();
   }
