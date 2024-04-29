@@ -10,7 +10,10 @@ import classNames from 'classnames';
 import { showMenu } from '@firefox-devtools/react-contextmenu';
 
 import explicitConnect from 'firefox-profiler/utils/connect';
-import { changeMarkersSearchString } from 'firefox-profiler/actions/profile-view';
+import {
+  changeMarkersSearchString,
+  setHideNonMatching,
+} from 'firefox-profiler/actions/profile-view';
 import { getMarkersSearchString } from 'firefox-profiler/selectors/url-state';
 import { getProfileUsesMultipleStackTypes } from 'firefox-profiler/selectors/profile';
 import { PanelSearch } from './PanelSearch';
@@ -29,6 +32,7 @@ type StateProps = {|
 
 type DispatchProps = {|
   +changeMarkersSearchString: typeof changeMarkersSearchString,
+  +setHideNonMatching: typeof setHideNonMatching,
 |};
 
 type Props = ConnectedProps<{||}, StateProps, DispatchProps>;
@@ -51,6 +55,10 @@ class MarkerSettingsImpl extends PureComponent<Props, State> {
 
   _onSearch = (value: string) => {
     this.props.changeMarkersSearchString(value);
+  };
+
+  _onFilterTypeChange = (hideNonMatching: boolean) => {
+    this.props.setHideNonMatching(hideNonMatching);
   };
 
   _onClickToggleFilterButton = (event: SyntheticMouseEvent<HTMLElement>) => {
@@ -113,6 +121,12 @@ class MarkerSettingsImpl extends PureComponent<Props, State> {
             onSearch={this._onSearch}
           />
         </Localized>
+        <input
+          type="checkbox"
+          id="hideNonMatching"
+          onChange={(e) => this._onFilterTypeChange(e.target.value)}
+        />
+        <label htmlFor="hideNonMatching">Hide Non-Matching</label>
         <Localized id="MarkerSettings--marker-filters" attrs={{ title: true }}>
           <button
             className={classNames(
@@ -144,6 +158,6 @@ export const MarkerSettings = explicitConnect<{||}, StateProps, DispatchProps>({
     searchString: getMarkersSearchString(state),
     allowSwitchingStackType: getProfileUsesMultipleStackTypes(state),
   }),
-  mapDispatchToProps: { changeMarkersSearchString },
+  mapDispatchToProps: { changeMarkersSearchString, setHideNonMatching },
   component: MarkerSettingsImpl,
 });

@@ -516,6 +516,7 @@ type UrlStateAction =
       +showSummary: boolean,
     |}
   | {| +type: 'CHANGE_MARKER_SEARCH_STRING', +searchString: string |}
+  | {| +type: 'SET_HIDE_NON_MATCHING', +hide: boolean |}
   | {| +type: 'CHANGE_NETWORK_SEARCH_STRING', +searchString: string |}
   | {| +type: 'CHANGE_PROFILES_TO_COMPARE', +profiles: string[] |}
   | {| +type: 'CHANGE_PROFILE_NAME', +profileName: string | null |}

@@ -561,7 +561,7 @@ export const TimelineMarkersJank = explicitConnect<
     return {
       getMarker: selectors.getMarkerGetter(state),
       // These don't use marker schema as they are derived.
-      markerIndexes: selectors.getTimelineJankMarkerIndexes(state),
+      markerIndexes: selectors.getTimelineJankMarkerIndexes(state)[0],
       isSelected: _getTimelineMarkersIsSelected(selectedThreads, threadsKey),
       isModifyingSelection: getPreviewSelection(state).isModifying,
       testId: 'TimelineMarkersJank',
@@ -590,7 +590,7 @@ export const TimelineMarkersOverview = explicitConnect<
         ? 'timelineMarkersGeckoMain'
         : null,
       getMarker: selectors.getMarkerGetter(state),
-      markerIndexes: selectors.getTimelineOverviewMarkerIndexes(state),
+      markerIndexes: selectors.getTimelineOverviewMarkerIndexes(state)[0],
       isSelected: _getTimelineMarkersIsSelected(selectedThreads, threadsKey),
       isModifyingSelection: getPreviewSelection(state).isModifying,
       testId: 'TimelineMarkersOverview',
@@ -616,7 +616,7 @@ export const TimelineMarkersFileIo = explicitConnect<
 
     return {
       getMarker: selectors.getMarkerGetter(state),
-      markerIndexes: selectors.getTimelineFileIoMarkerIndexes(state),
+      markerIndexes: selectors.getTimelineFileIoMarkerIndexes(state)[0],
       isSelected: _getTimelineMarkersIsSelected(selectedThreads, threadsKey),
       isModifyingSelection: getPreviewSelection(state).isModifying,
       testId: 'TimelineMarkersFileIo',
@@ -642,7 +642,7 @@ export const TimelineMarkersMemory = explicitConnect<
 
     return {
       getMarker: selectors.getMarkerGetter(state),
-      markerIndexes: selectors.getTimelineMemoryMarkerIndexes(state),
+      markerIndexes: selectors.getTimelineMemoryMarkerIndexes(state)[0],
       isSelected: _getTimelineMarkersIsSelected(selectedThreads, threadsKey),
       isModifyingSelection: getPreviewSelection(state).isModifying,
       additionalClassName: 'timelineMarkersMemory',
@@ -669,7 +669,7 @@ export const TimelineMarkersIPC = explicitConnect<
 
     return {
       getMarker: selectors.getMarkerGetter(state),
-      markerIndexes: selectors.getTimelineIPCMarkerIndexes(state),
+      markerIndexes: selectors.getTimelineIPCMarkerIndexes(state)[0],
       isSelected: _getTimelineMarkersIsSelected(selectedThreads, threadsKey),
       isModifyingSelection: getPreviewSelection(state).isModifying,
       additionalClassName: 'timelineMarkersIPC',

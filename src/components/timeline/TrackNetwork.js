@@ -433,7 +433,8 @@ export const TrackNetwork = explicitConnect<
       rangeEnd: end,
       zeroAt: getZeroAt(state),
       isModifyingSelection: getPreviewSelection(state).isModifying,
-      verticalMarkerIndexes: selectors.getTimelineVerticalMarkerIndexes(state),
+      verticalMarkerIndexes:
+        selectors.getTimelineVerticalMarkerIndexes(state)[0],
       rightClickedMarkerIndex: selectors.getRightClickedMarkerIndex(state),
       selectedNetworkMarkerIndex:
         selectors.getSelectedNetworkMarkerIndex(state),

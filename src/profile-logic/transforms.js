@@ -1631,7 +1631,8 @@ function _findRangesByMarkerFilter(
   markerIndexes: MarkerIndex[],
   markerSchemaByName: MarkerSchemaByName,
   categoryList: CategoryList,
-  filter: string
+  filter: string,
+  hideNonMatching: boolean
 ): StartEndRange[] {
   const ranges = [];
 
@@ -1641,6 +1642,7 @@ function _findRangesByMarkerFilter(
     [markerIndexes, Array(markerIndexes.length).fill(1)],
     markerSchemaByName,
     searchRegExp,
+    hideNonMatching,
     categoryList
   );
 
@@ -1668,7 +1670,8 @@ export function filterSamples(
   markerSchemaByName: MarkerSchemaByName,
   categoryList: CategoryList,
   filterType: FilterSamplesType,
-  filter: string
+  filter: string,
+  hideNonMatching: boolean
 ): Thread {
   return timeCode('filterSamples', () => {
     // Find the ranges to filter.
@@ -1680,7 +1683,8 @@ export function filterSamples(
             markerIndexes,
             markerSchemaByName,
             categoryList,
-            filter
+            filter,
+            hideNonMatching
           );
         default:
           throw assertExhaustiveCheck(filterType);
@@ -1799,7 +1803,8 @@ export function applyTransform(
         markerSchemaByName,
         categoryList,
         transform.filterType,
-        transform.filter
+        transform.filter,
+        false
       );
     default:
       throw assertExhaustiveCheck(transform);

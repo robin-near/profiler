@@ -376,6 +376,7 @@ export type ProfileSpecificUrlState = {|
   committedRanges: StartEndRange[],
   callTreeSearchString: string,
   markersSearchString: string,
+  hideNonMatching: boolean,
   networkSearchString: string,
   transforms: TransformStacksPerThread,
   timelineType: TimelineType,

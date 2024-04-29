@@ -316,7 +316,7 @@ export const StackChart = explicitConnect<{||}, StateProps, DispatchProps>({
       scrollToSelectionGeneration: getScrollToSelectionGeneration(state),
       innerWindowIDToPageMap: getInnerWindowIDToPageMap(state),
       getMarker: selectedThreadSelectors.getMarkerGetter(state),
-      userTimings: selectedThreadSelectors.getUserTimingMarkerIndexes(state),
+      userTimings: selectedThreadSelectors.getUserTimingMarkerIndexes(state)[0],
       timelineMarginLeft: getTimelineMarginLeft(state),
       displayStackType: getProfileUsesMultipleStackTypes(state),
     };

@@ -105,6 +105,8 @@ export const getCurrentSearchString: Selector<string> = (state) =>
   getProfileSpecificState(state).callTreeSearchString;
 export const getMarkersSearchString: Selector<string> = (state) =>
   getProfileSpecificState(state).markersSearchString;
+export const getHideNonMatching: Selector<boolean> = (state) =>
+  getProfileSpecificState(state).hideNonMatching;
 export const getNetworkSearchString: Selector<string> = (state) =>
   getProfileSpecificState(state).networkSearchString;
 export const getSelectedTab: Selector<TabSlug> = (state) =>

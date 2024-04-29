@@ -430,7 +430,7 @@ export function getThreadSelectorsWithMarkersPerThread(
       transforms,
       defaultCategory,
       markerGetter,
-      markerIndexes,
+      [markerIndexes, markerColors],
       markerSchemaByName,
       categories
     ) => {

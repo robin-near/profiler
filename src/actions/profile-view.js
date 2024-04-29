@@ -1700,6 +1700,13 @@ export function changeMarkersSearchString(searchString: string): Action {
   };
 }
 
+export function setHideNonMatching(hide: boolean): Action {
+  return {
+    type: 'SET_HIDE_NON_MATCHING',
+    hide,
+  };
+}
+
 export function changeNetworkSearchString(searchString: string): Action {
   return {
     type: 'CHANGE_NETWORK_SEARCH_STRING',

@@ -121,6 +121,7 @@ export function getSearchFilteredMarkerIndexes(
   [markerIndexes, markerColors]: [MarkerIndex[], MarkerColor[]],
   markerSchemaByName: MarkerSchemaByName,
   searchRegExp: RegExp | null,
+  hideNonMatching: boolean,
   categoryList: CategoryList
 ): [MarkerIndex[], MarkerColor[]] {
   if (!searchRegExp) {
@@ -149,18 +150,26 @@ export function getSearchFilteredMarkerIndexes(
   for (let i = 0; i < markerIndexes.length; i++) {
     const markerIndex = markerIndexes[i];
     const marker = getMarker(markerIndex);
-    newMarkers.push(markerIndex);
+    if (!hideNonMatching) {
+      newMarkers.push(markerIndex);
+    }
     const { data, name, category } = marker;
 
     if (categoryList[category] !== undefined) {
       const markerCategory = categoryList[category].name;
       if (test(markerCategory, 'cat')) {
+        if (hideNonMatching) {
+          newMarkers.push(markerIndex);
+        }
         newColors.push(markerColors[i]);
         continue;
       }
     }
 
     if (test(name, 'name')) {
+      if (hideNonMatching) {
+        newMarkers.push(markerIndex);
+      }
       newColors.push(markerColors[i]);
       continue;
     }
@@ -168,6 +177,9 @@ export function getSearchFilteredMarkerIndexes(
     if (data && typeof data === 'object') {
       if (test(data.type, 'type')) {
         // Check the type of the marker payload first.
+        if (hideNonMatching) {
+          newMarkers.push(markerIndex);
+        }
         newColors.push(markerColors[i]);
         continue;
       }
@@ -175,6 +187,9 @@ export function getSearchFilteredMarkerIndexes(
       let anyMatched = false;
       for (const key in data) {
         if (test(data[key], key)) {
+          if (hideNonMatching) {
+            newMarkers.push(markerIndex);
+          }
           newColors.push(markerColors[i]);
           anyMatched = true;
           break;
@@ -198,7 +213,9 @@ export function getSearchFilteredMarkerIndexes(
       // }
     }
 
-    newColors.push(0);
+    if (!hideNonMatching) {
+      newColors.push(0);
+    }
   }
   return [newMarkers, newColors];
 }

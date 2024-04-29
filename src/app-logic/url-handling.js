@@ -200,6 +200,7 @@ type CallTreeQuery = {|
 type MarkersQuery = {|
   ...BaseQuery,
   markerSearch: string, // "DOMEvent"
+  hideNonMatching: boolean,
 |};
 
 type NetworkQuery = {|
@@ -434,6 +435,8 @@ export function getQueryStringFromUrlState(urlState: UrlState): string {
       query = (baseQuery: MarkersQueryShape);
       query.markerSearch =
         urlState.profileSpecific.markersSearchString || undefined;
+      query.hideNonMatching =
+        urlState.profileSpecific.hideNonMatching || undefined;
       break;
     case 'network-chart':
       query = (baseQuery: NetworkQueryShape);
@@ -644,6 +647,7 @@ export function stateFromLocation(
       selectedThreads,
       callTreeSearchString: query.search || '',
       markersSearchString: query.markerSearch || '',
+      hideNonMatching: query.hideNonMatching || false,
       networkSearchString: query.networkSearch || '',
       transforms,
       sourceView,

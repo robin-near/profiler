@@ -372,7 +372,7 @@ const ConnectedComponent = explicitConnect<OwnProps, StateProps, DispatchProps>(
   {
     mapStateToProps: (state) => ({
       markerIndexes:
-        selectedThreadSelectors.getSearchFilteredNetworkMarkerIndexes(state),
+        selectedThreadSelectors.getSearchFilteredNetworkMarkerIndexes(state)[0],
       scrollToSelectionGeneration: getScrollToSelectionGeneration(state),
       getMarker: selectedThreadSelectors.getMarkerGetter(state),
       selectedNetworkMarkerIndex:

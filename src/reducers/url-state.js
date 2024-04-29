@@ -182,6 +182,15 @@ const markersSearchString: Reducer<string> = (state = '', action) => {
   }
 };
 
+const hideNonMatching: Reducer<boolean> = (state = false, action) => {
+  switch (action.type) {
+    case 'SET_HIDE_NON_MATCHING':
+      return !state;
+    default:
+      return state;
+  }
+};
+
 const networkSearchString: Reducer<string> = (state = '', action) => {
   switch (action.type) {
     case 'CHANGE_NETWORK_SEARCH_STRING':
@@ -698,6 +707,7 @@ const profileSpecific = combineReducers({
   committedRanges,
   callTreeSearchString,
   markersSearchString,
+  hideNonMatching,
   networkSearchString,
   transforms,
   sourceView,
